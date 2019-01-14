@@ -1,0 +1,136 @@
+create _load   4 , primitive : @ _load ; 
+create _store  5 , primitive : ! _store ;
+create _add    6 , primitive : + _add ; 
+create _sub    7 , primitive : - _sub ;
+create _mul    8 , primitive : * _mul ;
+create _div    9 , primitive : / _div ;
+create _mod   10 , primitive : % _mod ;
+create _and   11 , primitive : & _and ;
+create _or    12 , primitive : | _or ;
+create _not   13 , primitive : ~ _not ;
+create _dup   14 , primitive : dup _dup ;
+create _drop  15 , primitive : drop _drop ;
+create _swap  16 , primitive : swap _swap ;
+create _over  17 , primitive : over _over ;
+create _gt    22 , primitive : > _gt ;
+create _eq    23 , primitive : = _eq ;
+create _lt    24 , primitive : < _lt ;
+create _putn  25 , primitive : . _putn ; 
+create _jz    20 , primitive
+create _jmp   21 , primitive 
+create >r     18 , primitive
+create r>     19 , primitive
+create return  3 , primitive 
+create lit     1 , primitive
+create put_pixel     26 , primitive
+create draw_screen   27 , primitive
+create read_key      30 , primitive 
+create _clear_screen 28 , primitive : clear_screen _clear_screen ;
+create _draw_count   29 , primitive : draw_count _draw_count ;
+create _set_waveform 31 , primitive 
+create _start_sound  32 , primitive
+
+: screen_x 640 ;
+: screen_y 400 ;
+
+: screen_location screen_x * + 4 * ;
+: red   0 + ;
+: green 1 + ;
+: blue  2 + ;
+: alpha 3 + ;
+
+: 2dup over over ; 
+: 2drop drop drop ;
+
+: cp 2 ; 
+: here cp @ ;
+: cell 1 ;
+: cell+ cell + ;
+: cell- cell - ;
+: allot cp @ + cp ! ;
+: , here cell allot ! ;
+: compile r> cell+ dup @ , >r ; 
+: if compile _jz here 0 , ; immediate
+: else compile _jmp here 0 , swap here swap ! ; immediate
+: then here swap ! ; immediate
+: begin here ; immediate 
+: again compile _jmp , ; immediate 
+: until compile _jz , ; immediate
+: while compile _jz here 0 , swap ; immediate
+: repeat compile _jmp , here swap ! ; immediate
+: literal compile lit , ; immediate
+: test_loop begin 1 - dup while dup . repeat drop ; 
+: twelve [ 2 6 * ] literal ;
+
+create color 0 , 
+
+// Plot pixel ( location | ) 
+: plot_pixel 
+    dup red color @ red @ swap put_pixel 
+    dup green color @ green @ swap put_pixel 
+    dup blue color @ blue @ swap put_pixel 
+    alpha 255 swap put_pixel ;
+
+// Draw line ( y_position | )	
+: draw_line 
+    screen_x swap 
+    begin over 
+    while 
+        2dup screen_location plot_pixel 
+        swap 1 - swap  
+    repeat screen_location plot_pixel draw_screen ;
+: draw draw_screen ; 
+: anim begin dup while dup draw_line 1 - repeat draw_line ; 
+create white 255 , 255 , 255 , 
+create black 0 , 0 , 0 , 
+create grey 128 , 128 , 128 , 
+create red 128 , 0 , 0 , 
+create green 0 , 128 , 0 , 
+create blue 0 , 0 , 128 , 
+create colors white , black , grey , red , green , blue , 
+grey color !
+: get_key begin draw read_key until . ;
+: draw_color begin draw read_key if 6 % colors + @ color ! screen_y anim then again ;
+
+// Should ignore this line
+ 
+: one_second begin draw_screen _draw_count 60 % 0 = until ; 
+: two_second begin draw_screen _draw_count 120 % 0 = until ;
+: pause begin draw_screen _draw_count 30 % 0 = until ; 
+
+: sprite_x 8 ;
+: sprite_y 8 ;
+
+: columns [ screen_x sprite_x / ] literal ;
+: rows    [ screen_y sprite_y / ] literal ;
+
+: row_pos screen_x * sprite_y * ; 
+: col_pos sprite_x * ;  
+
+: start_pixel row_pos swap col_pos + 4 * ; 
+
+: even 2 % 0 = ; 
+: nip swap drop ; 
+: next_color 1 + ;
+// : get_sprite_color2 over 4 / even if dup @ color ! next_color then ; // sprite_x = 16
+: get_sprite_color dup @ color ! next_color ;
+: next_pixel swap 4 + swap ; 
+: plot_sprite get_sprite_color over plot_pixel next_pixel ;  
+: next_row swap [ screen_x 4 * ] literal + swap ;
+: draw_columns 0 >r over swap begin plot_sprite r> 1 + dup >r sprite_x = until r> drop nip next_row ; 
+
+: draw_rows 0 >r begin draw_columns r> 1 + dup >r sprite_y = until r> drop ; 
+
+create sprite1 
+black , red   , blue  , black , red  , blue , red   , blue  , 
+red   , blue  , black , red   , blue , red  , blue  , black ,
+blue  , black , red   , blue  , red  , blue , black , red   , 
+red   , blue  , black , red   , blue , red  , blue  , black ,
+black , red   , blue  , black , red  , blue , red   , blue  , 
+blue  , black , red   , blue  , red  , blue , black , red   , 
+black , red   , blue  , black , red  , blue , red   , blue  , 
+red   , blue  , black , red   , blue , red  , blue  , black ,
+
+: draw_tile >r start_pixel r> draw_rows draw_screen drop drop ; 
+: draw_row 0 0 sprite1 draw_tile ; 
+: test 44000 0 _set_waveform 50 500 _start_sound ; 

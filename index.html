@@ -1,0 +1,566 @@
+<html>
+<head>
+<title>Forth</title>
+<meta charset="UTF-8">
+</head>
+<body>
+<div id='content'>
+    <div style='float:left;'>
+        <textarea id='code' rows='16' cols='64' ondrop="dropHandler(event);" ondragover="dragOverHandler(event);"></textarea>
+	    <form onkeydown='enterLine(event)'>
+	        <input type='text' id='input' size='80' maxlength='80'></input>
+	    </form>
+	    <div>
+	        <button type='button' id='input_button' onclick='enterText(event)'>
+            Compile
+            </button>
+		    <button type='button' id='input_button' onclick='reset(event)'>
+            Reset
+            </button>
+	    </div>
+    </div>
+    <div>
+	    <canvas id='screen' width='640' height='400' tabindex='1' 
+	            style='float:left;border:1px solid black;margin-left:5px;'>
+	    </canvas>
+    </div>
+</div>
+<script>
+class OPCODE_TYPE {
+    static get DATA        () { return 0; }
+	static get PRIMITIVE   () { return 1; }
+	static get IMMEDIATE   () { return 2; }
+	static get CODE        () { return 3; }
+	static get INTERPRETER () { return 4; }
+}
+class VM_OPCODES {
+    static get ABORT () { return -1; }
+	static get NOP   () { return  0; }
+	static get LIT   () { return  1; }
+	static get CALL  () { return  2; }
+	static get RETURN() { return  3; }
+	static get LOAD  () { return  4; }
+	static get STORE () { return  5; }
+	static get ADD   () { return  6; }
+	static get SUB   () { return  7; }
+	static get MUL   () { return  8; }
+	static get DIV   () { return  9; }
+	static get MOD   () { return 10; }
+	static get AND   () { return 11; }
+	static get OR    () { return 12; }
+	static get NOT   () { return 13; }
+	static get DUP   () { return 14; }
+	static get DROP  () { return 15; }
+	static get SWAP  () { return 16; }
+	static get OVER  () { return 17; }
+	static get TOR   () { return 18; }
+	static get FROMR () { return 19; }
+	static get JZ    () { return 20; }
+	static get JMP   () { return 21; }
+	static get GT    () { return 22; }
+	static get EQ    () { return 23; }
+	static get LT    () { return 24; }
+	static get PUTN  () { return 25; }
+	static get PUT_PIXEL     () { return 26; }
+	static get DRAW_SCREEN   () { return 27; }
+	static get CLEAR_SCREEN  () { return 28; }
+	static get REFRESH_COUNT () { return 29; }
+	static get READ_KEY      () { return 30; }
+	static get SET_WAVEFORM  () { return 31; }
+	static get START_SOUND   () { return 32; }
+	
+}
+class INTERPRETER_OPCODES {
+    static get CREATE      () { return  1; }
+	static get COMMA       () { return  2; }
+	static get COLON       () { return  3; }
+	static get SEMICOLON   () { return  4; }
+	static get DATA        () { return  5; }
+	static get IMMEDIATE   () { return  6; }
+	static get PRIMITIVE   () { return  7; }
+	static get CODE        () { return  8; }
+	static get COMPILE_OFF () { return  9; }
+	static get COMPILE_ON  () { return 10; }
+	static get DOT_S       () { return 11; }
+	static get DOT         () { return 12; }
+}
+class OSCILLATOR_TYPES {
+    static get SINE    () { return 0; }
+	static get SQUARE  () { return 1; }
+	static get SAWTOOTH() { return 2; }
+	static get TRIANGLE() { return 3; }
+	static Oscillator_Types(val) {
+		switch(val) {
+			case OSCILLATOR_TYPES.SQUARE:
+				this.waveform = "square";
+				break;
+			case OSCILLATOR_TYPES.SAWTOOTH:
+				this.waveform = "sawtooth";
+				break;
+			case OSCILLATOR_TYPES.TRIANGLE:
+				this.waveform = "triangle";
+				break;
+			case OSCILLATOR_TYPES.SINE:
+			defaut:
+				this.waveform = "sine";
+				break;
+		}
+	}
+}
+class VirtualMachine {
+    constructor() {
+	    this.data_stack      = new Int32Array(16);
+		this.ds_ndx          = -1;
+		this.return_stack    = [];
+		this.buffer          = new ArrayBuffer(1024 * 64 * 4);
+		this.code            = new Int32Array(this.buffer);
+		this.program_counter = -1;
+        this.code[0]         =  0;
+		this.code[1]         =  0;
+        this.code[2]         =  3;
+		this.canvas          = document.getElementById('screen');
+        this.ctx             = this.canvas.getContext('2d');
+		this.imagedata       = this.ctx.createImageData(640, 400);
+		this.key             = -1;
+		this.draw_count      = 0;
+		this.running         = false;
+		this.audioCtx        = new window.AudioContext;
+		this.waveform        = "square";
+		this.freq            = 0.00;
+		this.need_refresh    = false;
+	}
+	push_code(val) {
+	    this.code[this.code[2]] = val;	
+	    this.code[2]++;
+	}
+	CONTINUE(t_frame) { this.draw_count++; if(!this.running){this.Run(this.program_counter, false);} }
+	PUSH (value) { this.data_stack[++this.ds_ndx] = value; }
+	POP () { return this.data_stack[this.ds_ndx--]; }
+	Run (location, single_step) {
+	    this.program_counter = location;
+		this.running = true;
+	    while (this.program_counter != VM_OPCODES.ABORT) {
+		    switch(this.code[this.program_counter]) {
+			    case VM_OPCODES.NOP:
+				    this.program_counter++;
+					break;
+				case VM_OPCODES.LIT:
+				    this.program_counter++; 
+		            this.PUSH(this.code[this.program_counter]);
+		            this.program_counter++;
+					break;
+				case VM_OPCODES.CALL:
+				    this.program_counter++;
+				    this.return_stack.push(this.program_counter);
+					this.program_counter = this.code[this.program_counter];
+					break;
+				case VM_OPCODES.RETURN:
+				    this.program_counter = this.return_stack.pop();
+					this.program_counter++;
+					break;
+				case VM_OPCODES.LOAD:
+					this.PUSH(this.code[this.POP()]);
+					this.program_counter++;
+				    break;
+				case VM_OPCODES.STORE:
+				    this.code[this.POP()] = this.POP();
+					this.program_counter++;
+				    break;
+				case VM_OPCODES.ADD:
+				    {
+					    let tos = this.POP();
+						let sos = this.POP();
+						tos = (tos + sos);
+				        this.PUSH(tos|0);
+					}
+					this.program_counter++;
+					break;
+				case VM_OPCODES.SUB:
+				    {
+					    let tos = this.POP();
+						let sos = this.POP();
+				        this.PUSH(sos - tos);
+					}
+					this.program_counter++;
+					break;
+				case VM_OPCODES.MUL:
+				    {
+					    let tos = this.POP();
+						let sos = this.POP();
+						tos = (tos * sos);
+				        this.PUSH(tos|0);
+					}
+					this.program_counter++;
+					break;
+				case VM_OPCODES.DIV:
+				    {
+					    let tos = this.POP();
+						let sos = this.POP();
+				        this.PUSH((sos / tos)|0);
+					}
+					this.program_counter++;
+					break;
+				case VM_OPCODES.MOD:
+				    {
+					    let tos = this.POP();
+						let sos = this.POP();
+				        this.PUSH((sos % tos)|0);
+					}
+					this.program_counter++;
+					break;
+				case VM_OPCODES.AND:
+				    this.PUSH(this.POP() & this.POP());
+					this.program_counter++;
+					break;
+				case VM_OPCODES.OR:
+				    this.PUSH(this.POP() | this.POP());
+					this.program_counter++;
+					break;
+				case VM_OPCODES.NOT:
+				    this.PUSH(~this.POP());
+					this.program_counter++;
+					break;
+			    case VM_OPCODES.DUP:
+				     {
+					    let tos = this.POP();
+						this.PUSH(tos);
+						this.PUSH(tos);
+					 }
+					 this.program_counter++;
+					 break;
+				case VM_OPCODES.DROP:
+				    this.POP();
+					this.program_counter++;
+					break;
+				case VM_OPCODES.SWAP:
+				    {
+					    let tos = this.POP();
+						let sos = this.POP();
+						this.PUSH(tos);
+						this.PUSH(sos);
+					}
+					this.program_counter++;
+					break;
+				case VM_OPCODES.OVER:
+				    {
+					    let tos = this.POP();
+						let sos = this.POP();
+						this.PUSH(sos);
+						this.PUSH(tos);
+						this.PUSH(sos);
+					}
+					this.program_counter++;
+					break;
+				case VM_OPCODES.TOR:
+				    this.return_stack.push(this.POP());
+					this.program_counter++;
+					break;
+				case VM_OPCODES.FROMR:
+				    this.PUSH(this.return_stack.pop());
+					this.program_counter++;
+					break;
+				case VM_OPCODES.JZ:
+				    this.program_counter++;
+				    {
+					    let tos = this.POP();
+						if(tos == 0) {
+						    this.program_counter = this.code[this.program_counter]; }
+						else {
+						    this.program_counter++; }
+					}
+					break;
+				case VM_OPCODES.JMP:
+				    this.program_counter++;
+					this.program_counter = this.code[this.program_counter];
+					break;
+				case VM_OPCODES.GT:
+				    {
+					    let tos = this.POP();
+						let sos = this.POP();
+						if (sos > tos) this.PUSH(1);
+						else this.PUSH(0);
+					}
+					this.program_counter++;
+					break;
+				case VM_OPCODES.EQ:
+				    {
+					    let tos = this.POP();
+						let sos = this.POP();
+						if (sos == tos) this.PUSH(1);
+						else this.PUSH(0);
+					}
+					this.program_counter++;
+					break;
+				case VM_OPCODES.LT:
+				    {
+					    let tos = this.POP();
+						let sos = this.POP();
+						if (sos < tos) this.PUSH(1);
+						else this.PUSH(0);
+					}
+					this.program_counter++;
+					break;
+				case VM_OPCODES.PUTN:
+				    console.log(this.POP());
+					this.program_counter++;
+					break;
+				case VM_OPCODES.PUT_PIXEL:
+				    {
+					    let position = this.POP();
+						let value    = this.POP();
+						this.imagedata.data[position] = value;
+						this.need_refresh = true;
+					}
+					this.program_counter++;
+					break;
+				case VM_OPCODES.DRAW_SCREEN:
+					this.program_counter++;
+					if (this.need_refresh) {
+					     this.ctx.putImageData(this.imagedata, 0, 0);
+						 this.need_refresh = false;
+					}
+					this.running = false;
+                    return;				
+				case VM_OPCODES.CLEAR_SCREEN:
+				    this.program_counter++;
+					this.imagedata = this.ctx.createImageData(640, 400);
+					this.need_refresh = true;
+					break;
+				case VM_OPCODES.REFRESH_COUNT:
+				    this.program_counter++;
+					this.PUSH(this.draw_count);
+					break;
+				case VM_OPCODES.READ_KEY:
+				    if(this.key == -1) {
+					    this.PUSH(0); }
+					else {
+					    this.PUSH(this.key);
+						this.PUSH(1);
+						this.key = -1;
+					}
+					this.program_counter++;
+					break;
+				case VM_OPCODES.SET_WAVEFORM:
+					this.waveform = OSCILLATOR_TYPES.Oscillator_Types(this.POP());
+					this.freq = this.POP();
+					this.program_counter++;
+					break;
+				case VM_OPCODES.START_SOUND:
+				    {
+					    let duration = (this.POP() / 1000.0);
+						let volume = (this.POP() / 100.0)
+					    let osc = this.audioCtx.createOscillator();
+						osc.type = this.waveform;
+						osc.frequency.setValueAtTime((this.freq / 100.0), this.audioCtx.currentTime);
+						let gainNode = this.audioCtx.createGain();
+						gainNode.gain.setValueAtTime(volume, this.audioCtx.currentTime);
+						osc.connect(gainNode);
+						gainNode.connect(this.audioCtx.destination);
+						osc.start();
+						osc.stop(this.audioCtx.currentTime + duration);
+					}
+					this.program_counter++;
+					break;
+				default:
+				    this.program_counter = VM_OPCODES.ABORT;
+					break;
+			}
+			if (single_step) {
+			    break; }
+		}
+		this.running = false;
+		return this.program_counter;
+	}
+}
+class WordEntry {
+    constructor (name, type, code) {
+	    this.name = name;
+		this.code = code;
+		this.type = type; }
+}
+class Interpreter {
+    constructor() {
+	    this.dict = [];
+		this.vm = new VirtualMachine();
+		this.compile = false;
+		this.create('create',    OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.CREATE);
+		this.create(',',         OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.COMMA);
+		this.create(':',         OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.COLON);
+		this.create(';',         OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.SEMICOLON);
+		this.create('data',      OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.DATA);
+		this.create('immediate', OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.IMMEDIATE);
+		this.create('primitive', OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.PRIMITIVE);
+		this.create('code',      OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.CODE);
+		this.create('[',         OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.COMPILE_OFF);
+		this.create(']',         OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.COMPILE_ON);
+		this.create('.S',        OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.DOT_S);
+	}
+	create (name, type, code) {
+	    this.dict.unshift(new WordEntry(name, type, code)); }
+	word (input) {
+	    return input.shift(); }
+	readline (input) {
+		this.interpret(input.split(" ")); 
+	}
+	find (value) {
+	    let found = null;
+	    this.dict.forEach(function(element) {
+		    if(!found && value === element.name) {
+			    found = element;
+			}
+		});
+	    return found; }
+	interpret (input) {
+	    while(input.length) {
+		    let word = this.word(input);
+			if (word === '//') { // Comment ignore the rest of the line
+			    break; }
+			if (word.length === 0) {
+			    continue; }
+			let element = this.find(word);
+			if (element) {
+			    console.log(element);
+			    if(element.type === OPCODE_TYPE.INTERPRETER) {
+				    this.op_interpret(element, input);
+				}
+				if(element.type === OPCODE_TYPE.DATA) {
+				    this.op_data(element);
+				}
+				if(element.type === OPCODE_TYPE.PRIMITIVE) {
+				    this.op_primitive(element);
+				}
+				if(element.type === OPCODE_TYPE.CODE) {
+				    this.op_code(element);
+				}
+				if(element.type === OPCODE_TYPE.IMMEDIATE) {
+				    this.op_immediate(element);
+				}
+			}
+			else {
+			    let number = Number(word);
+				if(isNaN(number)) {
+				    console.log('Error ' + word + ' not in dictionary, not a number.'); 
+					return false; }
+				number = number | 0;
+				if (this.compile) {
+				    this.vm.push_code(VM_OPCODES.LIT);
+					this.vm.push_code(number);
+				}
+				else {
+					this.vm.PUSH(number);
+				}
+			}
+		}
+		return true;
+	}
+	op_data(element, input) {
+	    if(this.compile) {
+		    this.vm.push_code(VM_OPCODES.LIT);
+		    this.vm.push_code(element.code);
+		}
+		else {
+		    this.vm.PUSH(element.code);
+		}
+	}
+	op_code(element, input) {
+	    if(this.compile) {
+		    this.vm.push_code(VM_OPCODES.CALL);
+			this.vm.push_code(element.code);
+		}
+		else {
+		    this.vm.Run(element.code, false);
+		}
+	}
+	op_immediate(element, input) {
+	    if(this.compile) {
+		    this.vm.Run(element.code, false);
+		}
+	}
+	op_primitive(element, input) {
+	    if(this.compile) {
+		    this.vm.push_code(this.vm.code[element.code]);
+		}
+	}
+	op_interpret(element, input) {
+	    switch(element.code) {
+		    case INTERPRETER_OPCODES.CREATE:
+				this.create(this.word(input), OPCODE_TYPE.DATA, this.vm.code[2]);
+				break;
+			case INTERPRETER_OPCODES.COMMA:
+				this.vm.push_code(this.vm.POP());
+				break;
+			case INTERPRETER_OPCODES.COLON:
+			    let name2 = this.word(input);
+				this.create(name2, OPCODE_TYPE.CODE, this.vm.code[2]);
+				this.compile = true;
+				break
+			case INTERPRETER_OPCODES.SEMICOLON:
+			    this.vm.push_code(VM_OPCODES.RETURN);
+				this.compile = false;
+				break;
+			case INTERPRETER_OPCODES.PRIMITIVE:
+			    this.dict[0].type = OPCODE_TYPE.PRIMITIVE;
+				break;
+			case INTERPRETER_OPCODES.IMMEDIATE:
+			    this.dict[0].type = OPCODE_TYPE.IMMEDIATE;
+				break;
+			case INTERPRETER_OPCODES.COMPILE_OFF:
+			    this.compile = false;
+				break;
+			case INTERPRETER_OPCODES.COMPILE_ON:
+			    this.compile = true;
+				break;
+			case INTERPRETER_OPCODES.DOT_S:
+			    {
+				    let ds = this.vm.ds_ndx > -1 ? this.vm.data_stack.slice(0, this.vm.ds_ndx+1) : []; 
+			        console.log('Data stack: ' + ds);
+				}
+				break;
+			default:
+			    return false;
+		}
+		return true;
+	}
+}
+function dropHandler(ev) {
+    fr = new FileReader();
+	fr.onload = function(ev) { document.getElementById("code").value = ev.target.result; }
+	let f = ev.dataTransfer.items[0].getAsFile();
+	fr.readAsText(f);
+	
+    console.log(f);
+	ev.preventDefault();
+}
+function dragOverHandler(ev) { ev.preventDefault(); }
+let interpreter = new Interpreter();
+function reset(event) { interpreter = new Interpreter(); }
+let count = 0;
+function enterLine(e) {
+    if (e.key === "Enter") {
+	    e.preventDefault();
+		count++;
+		var input = document.getElementById('input');
+		interpreter.readline(input.value);
+		document.getElementById("code").value += input.value + "\n"
+		input.value = '';
+	}
+}
+function enterText(e) {
+    let lines = document.getElementById("code").value.split("\n");
+	lines.forEach(function(element){
+	    interpreter.readline(element); });
+	document.getElementById("code").value = "";
+	console.log(interpreter.dict);
+	console.log(interpreter.vm.code.slice(0, interpreter.vm.code[2]+1));
+}
+interpreter.vm.canvas.addEventListener('keydown', function(event) {
+	interpreter.vm.key = event.key.charCodeAt();
+	event.preventDefault();});
+function main(t_frame) {
+	window.requestAnimationFrame(main);
+    interpreter.vm.CONTINUE(t_frame);
+}
+main(0);
+</script>
+</body>
+</html>
