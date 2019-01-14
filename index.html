@@ -11,12 +11,8 @@
 	        <input type='text' id='input' size='80' maxlength='80'></input>
 	    </form>
 	    <div>
-	        <button type='button' id='input_button' onclick='enterText(event)'>
-            Compile
-            </button>
-		    <button type='button' id='input_button' onclick='reset(event)'>
-            Reset
-            </button>
+	        <button type='button' id='input_button' onclick='enterText(event)'>Compile</button>
+		    <button type='button' id='input_button' onclick='reset(event)'>Reset</button>
 	    </div>
     </div>
     <div>
@@ -28,10 +24,10 @@
 <script>
 class OPCODE_TYPE {
     static get DATA        () { return 0; }
-	static get PRIMITIVE   () { return 1; }
-	static get IMMEDIATE   () { return 2; }
-	static get CODE        () { return 3; }
-	static get INTERPRETER () { return 4; }
+    static get PRIMITIVE   () { return 1; }
+    static get IMMEDIATE   () { return 2; }
+    static get CODE        () { return 3; }
+    static get INTERPRETER () { return 4; }
 }
 class VM_OPCODES {
     static get ABORT () { return -1; }
@@ -82,7 +78,6 @@ class INTERPRETER_OPCODES {
 	static get COMPILE_OFF () { return  9; }
 	static get COMPILE_ON  () { return 10; }
 	static get DOT_S       () { return 11; }
-	static get DOT         () { return 12; }
 }
 class OSCILLATOR_TYPES {
     static get SINE    () { return 0; }
@@ -170,8 +165,7 @@ class VirtualMachine {
 				    {
 					    let tos = this.POP();
 						let sos = this.POP();
-						tos = (tos + sos);
-				        this.PUSH(tos|0);
+				        this.PUSH((tos + sos)|0);
 					}
 					this.program_counter++;
 					break;
@@ -187,8 +181,7 @@ class VirtualMachine {
 				    {
 					    let tos = this.POP();
 						let sos = this.POP();
-						tos = (tos * sos);
-				        this.PUSH(tos|0);
+				        this.PUSH((tos * sos)|0);
 					}
 					this.program_counter++;
 					break;
@@ -327,8 +320,8 @@ class VirtualMachine {
 					this.need_refresh = true;
 					break;
 				case VM_OPCODES.REFRESH_COUNT:
-				    this.program_counter++;
 					this.PUSH(this.draw_count);
+                    this.program_counter++;
 					break;
 				case VM_OPCODES.READ_KEY:
 				    if(this.key == -1) {
@@ -387,7 +380,6 @@ class Interpreter {
 		this.create(',',         OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.COMMA);
 		this.create(':',         OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.COLON);
 		this.create(';',         OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.SEMICOLON);
-		this.create('data',      OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.DATA);
 		this.create('immediate', OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.IMMEDIATE);
 		this.create('primitive', OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.PRIMITIVE);
 		this.create('code',      OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.CODE);
@@ -527,18 +519,15 @@ function dropHandler(ev) {
 	fr.onload = function(ev) { document.getElementById("code").value = ev.target.result; }
 	let f = ev.dataTransfer.items[0].getAsFile();
 	fr.readAsText(f);
-	
     console.log(f);
 	ev.preventDefault();
 }
 function dragOverHandler(ev) { ev.preventDefault(); }
 let interpreter = new Interpreter();
 function reset(event) { interpreter = new Interpreter(); }
-let count = 0;
 function enterLine(e) {
     if (e.key === "Enter") {
 	    e.preventDefault();
-		count++;
 		var input = document.getElementById('input');
 		interpreter.readline(input.value);
 		document.getElementById("code").value += input.value + "\n"
