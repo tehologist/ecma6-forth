@@ -64,7 +64,8 @@ class VM_OPCODES {
 	static get READ_KEY      () { return 30; }
 	static get SET_WAVEFORM  () { return 31; }
 	static get START_SOUND   () { return 32; }
-	
+	static get LSHIFT        () { return 33; }
+	static get RSHIFT        () { return 34; }
 }
 class INTERPRETER_OPCODES {
     static get CREATE      () { return  1; }
@@ -78,6 +79,9 @@ class INTERPRETER_OPCODES {
 	static get COMPILE_OFF () { return  9; }
 	static get COMPILE_ON  () { return 10; }
 	static get DOT_S       () { return 11; }
+	static get D_POUND     () { return 12; }
+	static get H_POUND     () { return 13; }
+	static get B_POUND     () { return 14; }
 }
 class OSCILLATOR_TYPES {
     static get SINE    () { return 0; }
@@ -300,8 +304,11 @@ class VirtualMachine {
 				case VM_OPCODES.PUT_PIXEL:
 				    {
 					    let position = this.POP();
-						let value    = this.POP();
-						this.imagedata.data[position] = value;
+						let value = this.POP();
+						this.imagedata.data[position++] = ((value >>> 16) & 0xFF); // red
+						this.imagedata.data[position++] = ((value >>> 8) & 0xFF);  // green
+						this.imagedata.data[position++] = (value & 0xFF);          // blue
+						this.imagedata.data[position]   = 255;				
 						this.need_refresh = true;
 					}
 					this.program_counter++;
@@ -354,6 +361,22 @@ class VirtualMachine {
 					}
 					this.program_counter++;
 					break;
+				case VM_OPCODES.LSHIFT:
+				    {
+				        let shift_num = this.POP();
+					    let value = this.POP();
+						this.PUSH(value << shift_num);
+                    }					
+				    this.program_counter++;
+					break;
+				case VM_OPCODES.RSHIFT:
+					{
+				        let shift_num = this.POP();
+					    let value = this.POP();
+						this.PUSH(value >>> shift_num);
+                    }	
+				    this.program_counter++;
+					break;
 				default:
 				    this.program_counter = VM_OPCODES.ABORT;
 					break;
@@ -386,6 +409,9 @@ class Interpreter {
 		this.create('[',         OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.COMPILE_OFF);
 		this.create(']',         OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.COMPILE_ON);
 		this.create('.S',        OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.DOT_S);
+		this.create('D#',        OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.D_POUND);
+		this.create('H#',        OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.H_POUND);
+		this.create('B#',        OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.B_POUND);
 	}
 	create (name, type, code) {
 	    this.dict.unshift(new WordEntry(name, type, code)); }
@@ -473,6 +499,16 @@ class Interpreter {
 		    this.vm.push_code(this.vm.code[element.code]);
 		}
 	}
+	op_number(radix, input) {
+	    let number = parseInt(this.word(input), radix);
+		if (this.compile) {
+			this.vm.push_code(VM_OPCODES.LIT);
+			this.vm.push_code(number);
+		}
+		else {
+			this.vm.PUSH(number);
+		}
+	}
 	op_interpret(element, input) {
 	    switch(element.code) {
 		    case INTERPRETER_OPCODES.CREATE:
@@ -507,6 +543,15 @@ class Interpreter {
 				    let ds = this.vm.ds_ndx > -1 ? this.vm.data_stack.slice(0, this.vm.ds_ndx+1) : []; 
 			        console.log('Data stack: ' + ds);
 				}
+				break;
+			case INTERPRETER_OPCODES.D_POUND:
+			    this.op_number(10, input);
+				break;
+			case INTERPRETER_OPCODES.H_POUND:
+			    this.op_number(16, input);
+				break;
+			case INTERPRETER_OPCODES.B_POUND:
+			    this.op_number(2, input);
 				break;
 			default:
 			    return false;
