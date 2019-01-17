@@ -29,68 +29,65 @@ create _clear_screen 28 , primitive : clear_screen _clear_screen ;
 create _draw_count   29 , primitive : draw_count _draw_count ;
 create _set_waveform 31 , primitive 
 create _start_sound  32 , primitive
+create _lshift 33 , primitive : << _lshift ;
+create _rshift 34 , primitive : >> _rshift ;
+: clear _clear_screen draw_screen ;
 
-: screen_x 640 ;
-: screen_y 400 ;
-
-: screen_location screen_x * + 4 * ;
-: red   0 + ;
-: green 1 + ;
-: blue  2 + ;
-: alpha 3 + ;
-
-: 2dup over over ; 
-: 2drop drop drop ;
+: 2dup _over _over ; 
+: 2drop _drop _drop ;
 
 : cp 2 ; 
-: here cp @ ;
+: here cp _load ;
 : cell 1 ;
-: cell+ cell + ;
-: cell- cell - ;
-: allot cp @ + cp ! ;
-: , here cell allot ! ;
-: compile r> cell+ dup @ , >r ; 
+: cell+ cell _add ;
+: cell- cell _sub ;
+: allot cp _load _add cp _store ; 
+: , here cell allot ! ; 
+: compile r> cell+ _dup _load , >r ; 
 : if compile _jz here 0 , ; immediate
-: else compile _jmp here 0 , swap here swap ! ; immediate
-: then here swap ! ; immediate
+: else compile _jmp here 0 , _swap here _swap _store ; immediate
+: then here _swap _store ; immediate 
 : begin here ; immediate 
 : again compile _jmp , ; immediate 
 : until compile _jz , ; immediate
 : while compile _jz here 0 , swap ; immediate
 : repeat compile _jmp , here swap ! ; immediate
 : literal compile lit , ; immediate
-: test_loop begin 1 - dup while dup . repeat drop ; 
+: test_loop begin 1 _sub _dup while _dup . repeat _drop ; 
 : twelve [ 2 6 * ] literal ;
 
+: screen_x [ 640 ] literal ;
+: screen_y [ 400 ] literal ;
+
+: screen_location screen_x _mul _add 4 _mul ;
+
 create color 0 , 
+: white H# FFFFFF ;  
+: black H# 000000 ;
+: grey  H# 808080 ;  
+: red   H# 800000 ;  
+: green H# 008000 ;  
+: blue  H# 000080 ;
+blue color !
+
 
 // Plot pixel ( location | ) 
-: plot_pixel 
-    dup red color @ red @ swap put_pixel 
-    dup green color @ green @ swap put_pixel 
-    dup blue color @ blue @ swap put_pixel 
-    alpha 255 swap put_pixel ;
+: plot_pixel color _load _swap put_pixel ;
 
 // Draw line ( y_position | )	
 : draw_line 
-    screen_x swap 
-    begin over 
+    screen_x _swap 
+    begin _over 
     while 
-        2dup screen_location plot_pixel 
-        swap 1 - swap  
-    repeat screen_location plot_pixel draw_screen ;
+        _over _over screen_location plot_pixel 
+        _swap 1 _sub _swap  
+    repeat screen_location plot_pixel  draw_screen ;
 : draw draw_screen ; 
-: anim begin dup while dup draw_line 1 - repeat draw_line ; 
-create white 255 , 255 , 255 , 
-create black 0 , 0 , 0 , 
-create grey 128 , 128 , 128 , 
-create red 128 , 0 , 0 , 
-create green 0 , 128 , 0 , 
-create blue 0 , 0 , 128 , 
+: anim begin _dup while _dup draw_line 1 _sub repeat draw_line  ; 
+
 create colors white , black , grey , red , green , blue , 
-grey color !
-: get_key begin draw read_key until . ;
-: draw_color begin draw read_key if 6 % colors + @ color ! screen_y anim then again ;
+: get_key begin draw_screen read_key until . ;
+: draw_color begin draw_screen read_key if 6 _mod colors _add _load color _store screen_y anim then again ;
 
 // Should ignore this line
  
@@ -104,22 +101,21 @@ grey color !
 : columns [ screen_x sprite_x / ] literal ;
 : rows    [ screen_y sprite_y / ] literal ;
 
-: row_pos screen_x * sprite_y * ; 
-: col_pos sprite_x * ;  
+: row_pos screen_x _mul sprite_y _mul ; 
+: col_pos sprite_x _mul ;  
 
-: start_pixel row_pos swap col_pos + 4 * ; 
+: start_pixel row_pos swap col_pos _add 4 _mul ; 
 
 : even 2 % 0 = ; 
 : nip swap drop ; 
-: next_color 1 + ;
-// : get_sprite_color2 over 4 / even if dup @ color ! next_color then ; // sprite_x = 16
-: get_sprite_color dup @ color ! next_color ;
-: next_pixel swap 4 + swap ; 
+: next_color 1 _add ;
+: get_sprite_color _dup _load color _store next_color ;
+: next_pixel swap 4 _add swap ; 
 : plot_sprite get_sprite_color over plot_pixel next_pixel ;  
-: next_row swap [ screen_x 4 * ] literal + swap ;
-: draw_columns 0 >r over swap begin plot_sprite r> 1 + dup >r sprite_x = until r> drop nip next_row ; 
+: next_row swap [ screen_x 4 * ] literal _add swap ;
+: draw_columns 0 >r _over _swap begin plot_sprite r> 1 _add _dup >r sprite_x = until r> _drop nip next_row ; 
 
-: draw_rows 0 >r begin draw_columns r> 1 + dup >r sprite_y = until r> drop ; 
+: draw_rows 0 >r begin draw_columns r> 1 _add dup >r sprite_y = until r> drop ; 
 
 create sprite1 
 black , red   , blue  , black , red  , blue , red   , blue  , 
