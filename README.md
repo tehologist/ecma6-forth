@@ -1,5 +1,5 @@
 # ecma6-forth
-Low level forth like language for writing games
+Low level forth like language for experimenting with animation and graphics
 
 # useage
 Open up index.html file in web browser, must support ecmascript-6
