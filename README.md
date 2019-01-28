@@ -1,0 +1,19 @@
+# ecma6-forth
+Low level forth like language for writing games
+
+# useage
+Open up index.html file in web browser, must support ecmascript-6
+
+Drag demo.fth to text window on left and hit compile button
+
+In text input field below text box on the left can input commands to be executed
+
+D# 0 D# 0 AT D# 100 D# 100 TO LINE DRAW 
+
+red BG CLEAR
+
+green FG D# 10 RADIUS CIRCLE DRAW
+
+all
+
+D# 40 D# 40 CURSOR_AT test 
