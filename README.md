@@ -6,7 +6,7 @@ Open up index.html file in web browser, must support ecmascript-6
 
 Drag demo.fth to text window on left and hit compile button
 
-In text input field below text box on the left can input commands to be executed
+In text input field below text box on the left can input commands to be executed just type and press enter 
 
 D# 0 D# 0 AT D# 100 D# 100 TO LINE DRAW 
 
