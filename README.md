@@ -17,3 +17,6 @@ green FG D# 10 RADIUS CIRCLE DRAW
 all
 
 D# 40 D# 40 CURSOR_AT test 
+
+S" Hello World
+TYPE SPACE DRAW 
