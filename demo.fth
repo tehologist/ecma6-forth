@@ -56,7 +56,7 @@ create start_sound   D# 32 , primitive
 : screen_y D# 400 ;
 
 : negate ~ D# 1 + ; 
-: screen_location screen_x * + D# 2 << ;
+: screen_location screen_x * + ;
 
 : white H# FFFFFF ;  
 : black H# 000000 ; 
@@ -88,10 +88,10 @@ create seed here ,
 // Plot pixel ( location | ) 
 : plot_pixel color @ swap put_pixel ; 
 
-: total_pixels screen_x screen_y * D# 2 << ; 
+: total_pixels screen_x screen_y * ; 
 : CLEAR 
     D# 0 begin 
-        background @ over put_pixel D# 4 + dup 
+        background @ over put_pixel D# 1 + dup 
         [ total_pixels ] literal = 
     until drop draw_screen ; 
 CLEAR
@@ -158,7 +158,7 @@ create r D# 0 ,
 : COLUMN D# 3 << ; 
 : ROWS screen_y D# 1 ROW / ; 
 : COLUMNS screen_x D# 1 COLUMN / ; 
-: one_row screen_x D# 2 << ;
+: one_row screen_x ;
 : bottom_row one_row D# 7 * + ; 
 
 : draw_row over swap D# 0 >r begin 
@@ -166,7 +166,7 @@ create r D# 0 ,
         over color @ swap put_pixel
     else 
         over background @ swap put_pixel 
-    then D# 1 >> swap D# 4 + swap 
+    then D# 1 >> swap D# 1 + swap 
     r> D# 1 + dup >r D# 8 = until 
     r> drop 2drop one_row - ; 
 

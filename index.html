@@ -282,7 +282,7 @@ class VirtualMachine {
                     break;
                 case VM_OPCODES.PUT_PIXEL:
                     {
-                         let position = this.POP();
+                         let position = this.POP() * 4;
                          let value = this.POP();
                          this.imagedata.data[position++] = ((value >>> 16) & 0xFF); // red
                          this.imagedata.data[position++] = ((value >>> 8) & 0xFF);  // green
