@@ -18,5 +18,10 @@ all
 
 D# 40 D# 40 CURSOR_AT test 
 
+# strings
+
+S" word will take the remaining line and copy it into the vm leaving count and memory location on top of the stack, example below
+
 S" Hello World
+
 TYPE SPACE DRAW 
