@@ -399,6 +399,14 @@ class Interpreter {
         while(input.length && this.continue) {
             let word = this.word(input);
             if (word === '//') { break; } // Comment ignore rest of line
+            if (word === 'S"') {
+                let tmp_s = input.join(' ');
+                let pad = this.vm.code[2] + 80; // scratch pad
+                for(let x = 0; x < tmp_s.length; x++) { this.vm.code[pad++] = tmp_s.charCodeAt(x)|0; }
+                this.vm.PUSH(this.vm.code[2]+80);
+                this.vm.PUSH(tmp_s.length);
+                break;
+            }
             if (word.length === 0) { continue; }
             let element = this.find(word);
             if (element) {

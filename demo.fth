@@ -52,8 +52,8 @@ create start_sound   D# 32 , primitive
 : 2drop drop drop ; 
 : >= 2dup > >r = r> | ; 
 : <= 2dup < >r = r> | ; 
-: screen_x [ D# 640 ] literal ;
-: screen_y [ D# 400 ] literal ;
+: screen_x D# 640 ;
+: screen_y D# 400 ;
 
 : negate ~ D# 1 + ; 
 : screen_location screen_x * + D# 2 << ;
@@ -329,5 +329,10 @@ create CURSOR D# 0 ,
     over D# 1 + @ draw_rows 
     over @ draw_rows 2drop ; 
 : EMIT D# 32 _EMIT _EMIT CURSOR D# 1 +! ;
+: TYPE begin swap dup @ EMIT D# 1 + swap D# 1 - dup while repeat 2drop ; 
+: CR cursor_xy D# 1 + swap drop D# 0 swap CURSOR_AT ; 
+: SPACE D# 32 EMIT ; 
 : all D# 32 begin dup EMIT draw_screen D# 1 + dup D# 127 = until drop ; 
 : test random D# 15 % abs colors + @ FG random D# 15 % abs colors + @ BG all ; 
+S" Hello World 
+TYPE DRAW SPACE CR 
