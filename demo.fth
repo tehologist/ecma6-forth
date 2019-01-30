@@ -53,7 +53,7 @@ create start_sound   D# 32 , primitive
 : >= 2dup > >r = r> | ; 
 : <= 2dup < >r = r> | ; 
 : screen_x D# 640 ;
-: screen_y D# 400 ;
+: screen_y D# 480 ;
 
 : negate ~ D# 1 + ; 
 : screen_location screen_x * + ;
@@ -324,11 +324,12 @@ create font8x8_basic
 : ASCII font8x8_basic + @ ; 
 create CURSOR D# 0 , 
 : CURSOR_AT COLUMNS * + CURSOR ! ; 
-: cursor_xy CURSOR @ ROWS COLUMNS * % dup COLUMNS % swap COLUMNS / ; 
+: console_size ROWS COLUMNS * ; 
+: cursor_xy CURSOR @ [ console_size ] literal % dup COLUMNS % swap COLUMNS / ; 
 : _EMIT ASCII cursor_xy COLUMN swap ROW swap screen_location bottom_row 
     over D# 1 + @ draw_rows 
     over @ draw_rows 2drop ; 
-: EMIT D# 32 _EMIT _EMIT CURSOR D# 1 +! ;
+: EMIT _EMIT CURSOR D# 1 +! ;
 : TYPE begin swap dup @ EMIT D# 1 + swap D# 1 - dup while repeat 2drop ; 
 : CR cursor_xy D# 1 + swap drop D# 0 swap CURSOR_AT ; 
 : SPACE D# 32 EMIT ; 

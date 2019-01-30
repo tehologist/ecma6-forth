@@ -16,7 +16,7 @@
         </div>
     </div>
     <div>
-        <canvas id='screen' width='640' height='400' tabindex='1' 
+        <canvas id='screen' width='640' height='480' tabindex='1' 
                 style='float:left;border:1px solid black;margin-left:5px;'>
         </canvas>
     </div>
@@ -115,7 +115,7 @@ class VirtualMachine {
         this.code[2]         =  3;
         this.canvas          = document.getElementById('screen');
         this.ctx             = this.canvas.getContext('2d');
-        this.imagedata       = this.ctx.createImageData(640, 400);
+        this.imagedata       = this.ctx.createImageData(640, 480);
         this.key             = -1;
         this.draw_count      = 0;
         this.running         = false;
