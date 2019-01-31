@@ -89,18 +89,14 @@ class OSCILLATOR_TYPES {
     static Oscillator_Types(val) {
         switch(val) {
             case OSCILLATOR_TYPES.SQUARE:
-                this.waveform = "square";
-                break;
+                return "square";
             case OSCILLATOR_TYPES.SAWTOOTH:
-                this.waveform = "sawtooth";
-                break;
+                return "sawtooth";
             case OSCILLATOR_TYPES.TRIANGLE:
-                this.waveform = "triangle";
-                break;
+                return "triangle";
             case OSCILLATOR_TYPES.SINE:
             default:
-                this.waveform = "sine";
-                break;
+                return "sine";
         }
     }
 }
@@ -324,7 +320,7 @@ class VirtualMachine {
                         let volume = (this.POP() / 100.0)
                         let osc = this.audioCtx.createOscillator();
                         osc.type = this.waveform;
-                        osc.frequency.setValueAtTime((this.freq / 100.0), this.audioCtx.currentTime);
+                        osc.frequency.setValueAtTime((this.freq / 1000.0), this.audioCtx.currentTime);
                         let gainNode = this.audioCtx.createGain();
                         gainNode.gain.setValueAtTime(volume, this.audioCtx.currentTime);
                         osc.connect(gainNode);
@@ -410,7 +406,6 @@ class Interpreter {
             if (word.length === 0) { continue; }
             let element = this.find(word);
             if (element) {
-                console.log(element);
                 if(element.type === OPCODE_TYPE.INTERPRETER) {this.op_interpret(element, input); }
                 if(element.type === OPCODE_TYPE.DATA) { this.op_data(element); }
                 if(element.type === OPCODE_TYPE.PRIMITIVE) { this.op_primitive(element); }
@@ -418,7 +413,7 @@ class Interpreter {
                 if(element.type === OPCODE_TYPE.IMMEDIATE) { this.op_immediate(element); }
             }
             else {
-                    console.log('Error ' + word + ' not in dictionary.'); 
+                    alert('Error ' + word + ' not in dictionary.'); 
                     this.continue = false;
             }
         }
@@ -483,7 +478,7 @@ class Interpreter {
             case INTERPRETER_OPCODES.DOT_S:
                 {
                     let ds = this.vm.ds_ndx > -1 ? this.vm.data_stack.slice(0, this.vm.ds_ndx+1) : []; 
-                    console.log('Data stack: ' + ds);
+                    alert('Data stack: ' + ds);
                 }
                 break;
             case INTERPRETER_OPCODES.D_POUND:
@@ -506,7 +501,6 @@ function dropHandler(ev) {
     fr.onload = function(ev) { document.getElementById("code").value = ev.target.result; }
     let f = ev.dataTransfer.items[0].getAsFile();
     fr.readAsText(f);
-    console.log(f);
     ev.preventDefault();
 }
 function dragOverHandler(ev) { ev.preventDefault(); }
