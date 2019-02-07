@@ -67,7 +67,6 @@ class VM_OPCODES {
 }
 class INTERPRETER_OPCODES {
     static get CREATE      () { return  1; }
-    static get COMMA       () { return  2; }
     static get COLON       () { return  3; }
     static get SEMICOLON   () { return  4; }
     static get DATA        () { return  5; }
@@ -436,7 +435,7 @@ class Interpreter {
         if(this.compile) { this.vm.Run(element.code); }
     }
     op_primitive(element, input) {
-        if(this.compile) { this.vm.push_code(this.vm.code[element.code]); }
+        if(this.compile) { this.vm.push_code(element.code); }
     }
     op_number(radix, input) {
         let number = parseInt(this.word(input), radix);
@@ -451,9 +450,6 @@ class Interpreter {
             case INTERPRETER_OPCODES.CREATE:
                 this.create(this.word(input), OPCODE_TYPE.DATA, this.vm.code[2]);
                 break;
-            case INTERPRETER_OPCODES.COMMA:
-                this.vm.push_code(this.vm.POP());
-                break;
             case INTERPRETER_OPCODES.COLON:
                 let name2 = this.word(input);
                 this.create(name2, OPCODE_TYPE.CODE, this.vm.code[2]);
@@ -465,6 +461,7 @@ class Interpreter {
                 break;
             case INTERPRETER_OPCODES.PRIMITIVE:
                 this.dict[0].type = OPCODE_TYPE.PRIMITIVE;
+				this.dict[0].code = this.vm.POP();
                 break;
             case INTERPRETER_OPCODES.IMMEDIATE:
                 this.dict[0].type = OPCODE_TYPE.IMMEDIATE;

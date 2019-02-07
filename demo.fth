@@ -1,34 +1,34 @@
-create @    D#  4 , primitive 
-create !    D#  5 , primitive 
-create +    D#  6 , primitive 
-create -    D#  7 , primitive 
-create *    D#  8 , primitive 
-create /    D#  9 , primitive 
-create %    D# 10 , primitive 
-create &    D# 11 , primitive 
-create |    D# 12 , primitive 
-create ~    D# 13 , primitive 
-create dup  D# 14 , primitive 
-create drop D# 15 , primitive 
-create swap D# 16 , primitive 
-create over D# 17 , primitive 
-create >    D# 22 , primitive 
-create =    D# 23 , primitive 
-create <    D# 24 , primitive 
-create jz   D# 20 , primitive
-create jmp  D# 21 , primitive 
-create >r   D# 18 , primitive
-create r>   D# 19 , primitive 
-create <<   D# 33 , primitive 
-create >>   D# 34 , primitive 
-create return        D#  3 , primitive 
-create lit           D#  1 , primitive
-create put_pixel     D# 26 , primitive
-create draw_screen   D# 27 , primitive
-create read_key      D# 30 , primitive 
-create draw_count    D# 29 , primitive 
-create set_waveform  D# 31 , primitive 
-create start_sound   D# 32 , primitive
+create @    D#  4 primitive 
+create !    D#  5 primitive 
+create +    D#  6 primitive 
+create -    D#  7 primitive 
+create *    D#  8 primitive 
+create /    D#  9 primitive 
+create %    D# 10 primitive 
+create &    D# 11 primitive 
+create |    D# 12 primitive 
+create ~    D# 13 primitive 
+create dup  D# 14 primitive 
+create drop D# 15 primitive 
+create swap D# 16 primitive 
+create over D# 17 primitive 
+create >    D# 22 primitive 
+create =    D# 23 primitive 
+create <    D# 24 primitive 
+create jz   D# 20 primitive
+create jmp  D# 21 primitive 
+create >r   D# 18 primitive
+create r>   D# 19 primitive 
+create <<   D# 33 primitive 
+create >>   D# 34 primitive 
+create return        D#  3 primitive 
+create lit           D#  1 primitive
+create put_pixel     D# 26 primitive
+create draw_screen   D# 27 primitive
+create read_key      D# 30 primitive 
+create draw_count    D# 29 primitive 
+create set_waveform  D# 31 primitive 
+create start_sound   D# 32 primitive
 
 : cp D# 2 ; 
 : here cp @ ;
