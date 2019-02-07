@@ -130,9 +130,8 @@ class VirtualMachine {
                     this.program_counter++;
                     break;
                 case VM_OPCODES.LIT:
-                    this.program_counter++; 
-                    this.PUSH(this.code[this.program_counter]);
-                    this.program_counter++;
+                    this.PUSH(this.code[this.program_counter+1]);
+                    this.program_counter+=2;
                     break;
                 case VM_OPCODES.CALL:
                     this.program_counter++;
@@ -158,8 +157,7 @@ class VirtualMachine {
                 case VM_OPCODES.SUB:
                     {
                         let tos = this.POP();
-                        let sos = this.POP();
-                        this.PUSH(sos - tos);
+                        this.PUSH(this.POP() - tos);
                     }
                     this.program_counter++;
                     break;
@@ -170,16 +168,14 @@ class VirtualMachine {
                 case VM_OPCODES.DIV:
                     {
                         let tos = this.POP();
-                        let sos = this.POP();
-                        this.PUSH((sos / tos)|0);
+                        this.PUSH((this.POP() / tos)|0);
                     }
                     this.program_counter++;
                     break;
                 case VM_OPCODES.MOD:
                     {
                         let tos = this.POP();
-                        let sos = this.POP();
-                        this.PUSH((sos % tos)|0);
+                        this.PUSH((this.POP() % tos)|0);
                     }
                     this.program_counter++;
                     break;
@@ -235,31 +231,25 @@ class VirtualMachine {
                     this.program_counter++;
                     break;
                 case VM_OPCODES.JZ:
-                    this.program_counter++;
                     {
-                        let tos = this.POP();
-                        if(tos == 0) { this.program_counter = this.code[this.program_counter]; }
-                        else { this.program_counter++; }
+                        if(this.POP() == 0) { this.program_counter = this.code[this.program_counter+1]; }
+                        else { this.program_counter+=2; }
                     }
                     break;
                 case VM_OPCODES.JMP:
-                    this.program_counter++;
-                    this.program_counter = this.code[this.program_counter];
+                    this.program_counter = this.code[this.program_counter+1];
                     break;
                 case VM_OPCODES.GT:
                     {
                         let tos = this.POP();
-                        let sos = this.POP();
-                        if (sos > tos) this.PUSH(-1);
+                        if (this.POP() > tos) this.PUSH(-1);
                         else this.PUSH(0);
                     }
                     this.program_counter++;
                     break;
                 case VM_OPCODES.EQ:
                     {
-                        let tos = this.POP();
-                        let sos = this.POP();
-                        if (sos == tos) this.PUSH(-1);
+                        if (this.POP() == this.POP()) this.PUSH(-1);
                         else this.PUSH(0);
                     }
                     this.program_counter++;
@@ -267,8 +257,7 @@ class VirtualMachine {
                 case VM_OPCODES.LT:
                     {
                         let tos = this.POP();
-                        let sos = this.POP();
-                        if (sos < tos) this.PUSH(-1);
+                        if (this.POP() < tos) this.PUSH(-1);
                         else this.PUSH(0);
                     }
                     this.program_counter++;
@@ -330,16 +319,14 @@ class VirtualMachine {
                 case VM_OPCODES.LSHIFT:
                     {
                         let shift_num = this.POP();
-                        let value = this.POP();
-                        this.PUSH(value << shift_num);
+                        this.PUSH(this.POP() << shift_num);
                     }					
                     this.program_counter++;
                     break;
                 case VM_OPCODES.RSHIFT:
                     {
                         let shift_num = this.POP();
-                        let value = this.POP();
-                        this.PUSH(value >>> shift_num);
+                        this.PUSH(this.POP() >>> shift_num);
                     }	
                     this.program_counter++;
                     break;
@@ -365,7 +352,6 @@ class Interpreter {
         this.continue = true;
         this.compile = false;
         this.create('create',    OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.CREATE);
-        this.create(',',         OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.COMMA);
         this.create(':',         OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.COLON);
         this.create(';',         OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.SEMICOLON);
         this.create('immediate', OPCODE_TYPE.INTERPRETER, INTERPRETER_OPCODES.IMMEDIATE);
