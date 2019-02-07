@@ -79,7 +79,6 @@ class INTERPRETER_OPCODES {
     static get B_POUND     () { return 14; }
 }
 class OSCILLATOR_TYPES {
-    static get SINE    () { return 0; }
     static get SQUARE  () { return 1; }
     static get SAWTOOTH() { return 2; }
     static get TRIANGLE() { return 3; }
@@ -91,7 +90,6 @@ class OSCILLATOR_TYPES {
                 return "sawtooth";
             case OSCILLATOR_TYPES.TRIANGLE:
                 return "triangle";
-            case OSCILLATOR_TYPES.SINE:
             default:
                 return "sine";
         }
@@ -303,7 +301,7 @@ class VirtualMachine {
                 case VM_OPCODES.START_SOUND:
                     {
                         let duration = (this.POP() / 1000.0);
-                        let volume = (this.POP() / 100.0)
+                        let volume = (this.POP() / 100.0);
                         let osc = this.audioCtx.createOscillator();
                         osc.type = this.waveform;
                         osc.frequency.setValueAtTime((this.freq / 1000.0), this.audioCtx.currentTime);
@@ -472,9 +470,8 @@ class Interpreter {
                 this.op_number(2, input);
                 break;
             default:
-                return false;
+			    break;
         }
-        return true;
     }
 }
 function dropHandler(ev) {
