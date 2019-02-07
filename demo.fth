@@ -319,6 +319,7 @@ create CURSOR D# 0 ,
     over font8x8_basic ASCII draw_rows 2drop ; 
 : EMIT _EMIT CURSOR D# 1 +! ;
 : TYPE begin swap dup @ EMIT D# 1 + swap D# 1 - dup while repeat 2drop ; 
+: STRING dup , begin swap dup @ , D# 1 + swap D# 1 - dup while repeat 2drop ; 
 : CR cursor_xy D# 1 + swap drop D# 0 swap CURSOR_AT ; 
 : SPACE D# 32 EMIT ; 
 : INVERT color @ background @ color ! background ! ; 
