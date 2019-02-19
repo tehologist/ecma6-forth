@@ -37,7 +37,8 @@ class VirtualMachine {
         this.buffer          = new ArrayBuffer(1024 * 64 * 4);
         this.code            = new Int32Array(this.buffer);
         this.program_counter = -1;
-        this.code[2]         =  3;
+		this.code[2]         =  0; // compiler state
+        this.code[3]         =  4; // code pointer 
         this.canvas          = document.getElementById('screen');
         this.ctx             = this.canvas.getContext('2d');
         this.imagedata       = this.ctx.createImageData(640, 480);
@@ -49,7 +50,10 @@ class VirtualMachine {
         this.freq            = 0.00;
         this.need_refresh    = false;
     }
-    push_code(val) {this.code[this.code[2]++] = val;}	
+    push_code(val) {this.code[this.code[3]++] = val;}
+    compile_on() {this.code[2] = -1;}
+    compile_off() {this.code[2] = 0;}
+    compile() {return this.code[2];}	
     CONTINUE(t_frame) { this.draw_count++; if(!this.running){this.Run(this.program_counter);} }
     PUSH (value) { this.data_stack[++this.ds_ndx] = value; }
     POP () { return this.data_stack[this.ds_ndx--]; }
@@ -87,10 +91,8 @@ class VirtualMachine {
                     this.program_counter++;
                     break;
                 case 7: // SUB 
-                    {
-                        let tos = this.POP();
-                        this.PUSH(this.POP() - tos);
-                    }
+                {   let tos = this.POP();
+                    this.PUSH(this.POP() - tos); }
                     this.program_counter++;
                     break;
                 case 8: // MUL 
@@ -98,17 +100,13 @@ class VirtualMachine {
                     this.program_counter++;
                     break;
                 case 9: // DIV 
-                    {
-                        let tos = this.POP();
-                        this.PUSH((this.POP() / tos)|0);
-                    }
+                {   let tos = this.POP();
+                    this.PUSH((this.POP() / tos)|0); }
                     this.program_counter++;
                     break;
                 case 10: // MOD 
-                    {
-                        let tos = this.POP();
-                        this.PUSH((this.POP() % tos)|0);
-                    }
+                {   let tos = this.POP();
+                    this.PUSH((this.POP() % tos)|0); }
                     this.program_counter++;
                     break;
                 case 11: // AND
@@ -124,11 +122,9 @@ class VirtualMachine {
                     this.program_counter++;
                     break;
                 case 14: // DUP 
-                     {
-                        let tos = this.POP();
-                        this.PUSH(tos);
-                        this.PUSH(tos);
-                     }
+                {   let tos = this.POP();
+                    this.PUSH(tos);
+                    this.PUSH(tos); }
                      this.program_counter++;
                      break;
                 case 15: // DROP 
@@ -136,22 +132,18 @@ class VirtualMachine {
                     this.program_counter++;
                     break;
                 case 16: // SWAP 
-                    {
-                        let tos = this.POP();
-                        let sos = this.POP();
-                        this.PUSH(tos);
-                        this.PUSH(sos);
-                    }
+                {   let tos = this.POP();
+                    let sos = this.POP();
+                    this.PUSH(tos);
+                    this.PUSH(sos); }
                     this.program_counter++;
                     break;
                 case 17: // OVER 
-                    {
-                        let tos = this.POP();
-                        let sos = this.POP();
-                        this.PUSH(sos);
-                        this.PUSH(tos);
-                        this.PUSH(sos);
-                    }
+                {   let tos = this.POP();
+                    let sos = this.POP();
+                    this.PUSH(sos);
+                    this.PUSH(tos);
+                    this.PUSH(sos); }
                     this.program_counter++;
                     break;
                 case 18: // TOR 
@@ -163,56 +155,43 @@ class VirtualMachine {
                     this.program_counter++;
                     break;
                 case 20: // JZ 
-                    {
-                        if(this.POP() == 0) { this.program_counter = this.code[this.program_counter+1]; }
-                        else { this.program_counter+=2; }
-                    }
+                    if(this.POP() == 0) { this.program_counter = this.code[this.program_counter+1]; }
+                    else { this.program_counter+=2; }
                     break;
                 case 21: // JMP 
                     this.program_counter = this.code[this.program_counter+1];
                     break;
                 case 22: // GT 
-                    {
-                        let tos = this.POP();
-                        if (this.POP() > tos) this.PUSH(-1);
-                        else this.PUSH(0);
-                    }
+                    if (this.POP() < this.POP()) this.PUSH(-1);
+                    else this.PUSH(0);
                     this.program_counter++;
                     break;
                 case 23: // EQ 
-                    {
-                        if (this.POP() == this.POP()) this.PUSH(-1);
-                        else this.PUSH(0);
-                    }
+                    if (this.POP() == this.POP()) this.PUSH(-1);
+                    else this.PUSH(0);
                     this.program_counter++;
                     break;
                 case 24: // LT 
-                    {
-                        let tos = this.POP();
-                        if (this.POP() < tos) this.PUSH(-1);
-                        else this.PUSH(0);
-                    }
+                    if (this.POP() > this.POP()) this.PUSH(-1);
+                    else this.PUSH(0);
                     this.program_counter++;
                     break;
                 case 26: // PUT_PIXEL
-                    {
-                         let position = this.POP() * 4;
-                         let value = this.POP();
-                         this.imagedata.data[position++] = ((value >>> 16) & 0xFF); // red
-                         this.imagedata.data[position++] = ((value >>> 8) & 0xFF);  // green
-                         this.imagedata.data[position++] = (value & 0xFF);          // blue
-                         this.imagedata.data[position]   = 0xFF;				
-                         this.need_refresh = true;
-                    }
+                {   let position = this.POP() * 4;
+                    let value = this.POP();
+                    this.imagedata.data[position++] = ((value >>> 16) & 0xFF); // red
+                    this.imagedata.data[position++] = ((value >>> 8) & 0xFF);  // green
+                    this.imagedata.data[position++] = (value & 0xFF);          // blue
+                    this.imagedata.data[position]   = 0xFF;				
+                    this.need_refresh = true; }
                     this.program_counter++;
                     break;
                 case 27: //DRAW_SCREEN 
-                    this.program_counter++;
                     if (this.need_refresh) {
                          this.ctx.putImageData(this.imagedata, 0, 0);
-                         this.need_refresh = false;
-                    }
+                         this.need_refresh = false; }
                     this.running = false;
+					this.program_counter++;
                     return;				
                 case 29: // REFRESH_COUNT 
                     this.PUSH(this.draw_count);
@@ -223,8 +202,7 @@ class VirtualMachine {
                     else {
                         this.PUSH(this.key);
                         this.PUSH(1);
-                        this.key = -1;
-                    }
+                        this.key = -1; }
                     this.program_counter++;
                     break;
                 case 31: // SET_WAVEFORM
@@ -233,33 +211,27 @@ class VirtualMachine {
                     this.program_counter++;
                     break;
                 case 32: // START_SOUND
-                    {
-                        let duration = (this.POP() / 1000.0);
-                        let volume = (this.POP() / 100.0);
-                        let osc = this.audioCtx.createOscillator();
-                        osc.type = this.waveform;
-                        osc.frequency.setValueAtTime((this.freq / 1000.0), this.audioCtx.currentTime);
-                        let gainNode = this.audioCtx.createGain();
-                        gainNode.gain.setValueAtTime(volume, this.audioCtx.currentTime);
-                        osc.connect(gainNode);
-                        gainNode.connect(this.audioCtx.destination);
-                        osc.start();
-                        osc.stop(this.audioCtx.currentTime + duration);
-                    }
+                {   let duration = (this.POP() / 1000.0);
+                    let volume = (this.POP() / 100.0);
+                    let osc = this.audioCtx.createOscillator();
+                    osc.type = this.waveform;
+                    osc.frequency.setValueAtTime((this.freq / 1000.0), this.audioCtx.currentTime);
+                    let gainNode = this.audioCtx.createGain();
+                    gainNode.gain.setValueAtTime(volume, this.audioCtx.currentTime);
+                    osc.connect(gainNode);
+                    gainNode.connect(this.audioCtx.destination);
+                    osc.start();
+                    osc.stop(this.audioCtx.currentTime + duration); }
                     this.program_counter++;
                     break;
                 case 33: // LSHIFT 
-                    {
-                        let shift_num = this.POP();
-                        this.PUSH(this.POP() << shift_num);
-                    }					
+                {   let shift_num = this.POP();
+                    this.PUSH(this.POP() << shift_num); }					
                     this.program_counter++;
                     break;
                 case 34: // RSHIFT 
-                    {
-                        let shift_num = this.POP();
-                        this.PUSH(this.POP() >>> shift_num);
-                    }	
+                {   let shift_num = this.POP();
+                    this.PUSH(this.POP() >>> shift_num); }	
                     this.program_counter++;
                     break;
                 default:
@@ -284,16 +256,15 @@ class Interpreter {
         this.continue = true;
         this.compile = false;
         this.create('create',    OPCODE_TYPE.INTERPRETER, 1);
-        this.create(':',         OPCODE_TYPE.INTERPRETER, 3);
-        this.create(';',         OPCODE_TYPE.INTERPRETER, 4);
-        this.create('immediate', OPCODE_TYPE.INTERPRETER, 6);
-        this.create('primitive', OPCODE_TYPE.INTERPRETER, 7);
-        this.create('[',         OPCODE_TYPE.INTERPRETER, 9);
-        this.create(']',         OPCODE_TYPE.INTERPRETER, 10);
-        this.create('.S',        OPCODE_TYPE.INTERPRETER, 11);
-        this.create('D#',        OPCODE_TYPE.INTERPRETER, 12);
-        this.create('H#',        OPCODE_TYPE.INTERPRETER, 13);
-        this.create('B#',        OPCODE_TYPE.INTERPRETER, 14);
+        this.create(':',         OPCODE_TYPE.INTERPRETER, 2);
+        this.create(';',         OPCODE_TYPE.INTERPRETER, 3);
+        this.create('immediate', OPCODE_TYPE.INTERPRETER, 4);
+        this.create('primitive', OPCODE_TYPE.INTERPRETER, 5);
+        this.create('.S',        OPCODE_TYPE.INTERPRETER, 6);
+        this.create('D#',        OPCODE_TYPE.INTERPRETER, 7);
+        this.create('H#',        OPCODE_TYPE.INTERPRETER, 8);
+        this.create('B#',        OPCODE_TYPE.INTERPRETER, 9);
+		this.create('\'',        OPCODE_TYPE.INTERPRETER, 10);
     }
     create (name, type, code) { this.dict.unshift(new WordEntry(name, type, code)); }
     word (input) { return input.shift(); }
@@ -301,9 +272,7 @@ class Interpreter {
     find (value) {
         let found = null;
         this.dict.forEach(function(element) {
-            if(!found && value === element.name) {
-                found = element;
-            }
+            if(!found && value === element.name) { found = element; }
         });
         return found; }
     interpret (input) {
@@ -312,9 +281,9 @@ class Interpreter {
             if (word === '//') { break; } // Comment ignore rest of line
             if (word === 'S"') {
                 let tmp_s = input.join(' ');
-                let pad = this.vm.code[2] + 80; // scratch pad
+                let pad = this.vm.code[3] + 80; // scratch pad
                 for(let x = 0; x < tmp_s.length; x++) { this.vm.code[pad++] = tmp_s.charCodeAt(x)|0; }
-                this.vm.PUSH(this.vm.code[2]+80);
+                this.vm.PUSH(this.vm.code[3] + 80);
                 this.vm.PUSH(tmp_s.length);
                 break;
             }
@@ -325,83 +294,72 @@ class Interpreter {
                 if(element.type === OPCODE_TYPE.DATA) { this.op_data(element); }
                 if(element.type === OPCODE_TYPE.PRIMITIVE) { this.op_primitive(element); }
                 if(element.type === OPCODE_TYPE.CODE) { this.op_code(element); }
-                if(element.type === OPCODE_TYPE.IMMEDIATE) { this.op_immediate(element); }
-            }
+                if(element.type === OPCODE_TYPE.IMMEDIATE) { this.op_immediate(element); } }
             else {
                     alert('Error ' + word + ' not in dictionary.'); 
-                    this.continue = false;
-            }
+                    this.continue = false; }
         }
     }
     op_data(element, input) {
-        if(this.compile) {
+        if(this.vm.compile() === -1 ) {
             this.vm.push_code(1); // LIT 
-            this.vm.push_code(element.code);
-        }
+            this.vm.push_code(element.code); }
         else { this.vm.PUSH(element.code); }
     }
     op_code(element, input) {
-        if(this.compile) {
+        if(this.vm.compile() === -1) {
             this.vm.push_code(2); // CALL 
-            this.vm.push_code(element.code);
-        }
+            this.vm.push_code(element.code); }
         else { this.vm.Run(element.code); }
     }
-    op_immediate(element, input) {
-        if(this.compile) { this.vm.Run(element.code); }
-    }
-    op_primitive(element, input) {
-        if(this.compile) { this.vm.push_code(element.code); }
-    }
+    op_immediate(element, input) { this.vm.Run(element.code); }
+    op_primitive(element, input) { if(this.vm.compile()) { this.vm.push_code(element.code); } }
     op_number(radix, input) {
         let number = parseInt(this.word(input), radix);
-        if (this.compile) {
+        if (this.vm.compile() === -1) {
             this.vm.push_code(1); // LIT 
-            this.vm.push_code(number);
-        }
+            this.vm.push_code(number); }
         else { this.vm.PUSH(number); }
     }
     op_interpret(element, input) {
         switch(element.code) {
             case 1: // create 
-                this.create(this.word(input), OPCODE_TYPE.DATA, this.vm.code[2]);
+                this.create(this.word(input), OPCODE_TYPE.DATA, this.vm.code[3]);
                 break;
-            case 3: // :
-                let name2 = this.word(input);
-                this.create(name2, OPCODE_TYPE.CODE, this.vm.code[2]);
-                this.compile = true;
-                break
-            case 4: // ;
+            case 2: // :
+              this.create(this.word(input), OPCODE_TYPE.CODE, this.vm.code[3]);
+              this.vm.compile_on();
+              break;
+            case 3: // ;
                 this.vm.push_code(3); // RETURN 
-                this.compile = false;
+                this.vm.compile_off();
                 break;
-            case 6: // immediate 
+            case 4: // immediate 
                 this.dict[0].type = OPCODE_TYPE.IMMEDIATE;
                 break;
-            case 7: // primitive 
+            case 5: // primitive 
                 this.dict[0].type = OPCODE_TYPE.PRIMITIVE;
 				this.dict[0].code = this.vm.POP();
                 break;
-            case 9: // [
-                this.compile = false;
+            case 6: // .S 
+            {   let ds = this.vm.ds_ndx > -1 ? this.vm.data_stack.slice(0, this.vm.ds_ndx+1) : []; 
+                alert('Data stack: ' + ds); }
                 break;
-            case 10: // ]
-                this.compile = true;
-                break;
-            case 11: // .S 
-                {
-                    let ds = this.vm.ds_ndx > -1 ? this.vm.data_stack.slice(0, this.vm.ds_ndx+1) : []; 
-                    alert('Data stack: ' + ds);
-                }
-                break;
-            case 12: // D# 
+            case 7: // D# 
                 this.op_number(10, input);
                 break;
-            case 13: // H# 
+            case 8: // H# 
                 this.op_number(16, input);
                 break;
-            case 14: // B# 
+            case 9: // B# 
                 this.op_number(2, input);
+                break;
+			case 10: // '
+			{   let element = this.find(this.word(input));
+                if (element) { 
+			        this.vm.PUSH(element.code);
+				    this.vm.PUSH(-1); }
+			    else { this.vm.PUSH(0); } }
                 break;
             default:
 			    break;
@@ -417,16 +375,19 @@ function dropHandler(ev) {
 }
 function dragOverHandler(ev) { ev.preventDefault(); }
 let interpreter = new Interpreter();
-function reset(event) { interpreter = new Interpreter(); }
+function reset(event) { 
+    interpreter = new Interpreter(); 
+    document.getElementById("code").value = "";}
 function enterLine(e) {
     if (e.key === "Enter") {
         e.preventDefault();
-        var input = document.getElementById('input');
+        let input = document.getElementById('input');
         interpreter.continue = true;
         interpreter.readline(input.value);
-        document.getElementById("code").value += input.value + "\n"
-        input.value = '';
-    }
+        let code = document.getElementById("code");
+        code.value += input.value + "\n"
+        input.value = ''; 
+        code.scrollTop = code.scrollHeight;}
 }
 function enterText(e) {
     let lines = document.getElementById("code").value.split("\n");

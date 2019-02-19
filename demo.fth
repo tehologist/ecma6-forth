@@ -1,26 +1,26 @@
-create @    D#  4 primitive 
-create !    D#  5 primitive 
-create +    D#  6 primitive 
-create -    D#  7 primitive 
-create *    D#  8 primitive 
-create /    D#  9 primitive 
-create %    D# 10 primitive 
-create &    D# 11 primitive 
-create |    D# 12 primitive 
-create ~    D# 13 primitive 
-create dup  D# 14 primitive 
-create drop D# 15 primitive 
-create swap D# 16 primitive 
-create over D# 17 primitive 
-create >    D# 22 primitive 
-create =    D# 23 primitive 
-create <    D# 24 primitive 
+create _@    D#  4 primitive 
+create _!    D#  5 primitive 
+create _+    D#  6 primitive 
+create _-    D#  7 primitive 
+create _*    D#  8 primitive 
+create _/    D#  9 primitive 
+create _%    D# 10 primitive 
+create _&    D# 11 primitive 
+create _|    D# 12 primitive 
+create _~    D# 13 primitive 
+create _dup  D# 14 primitive 
+create _drop D# 15 primitive 
+create _swap D# 16 primitive 
+create _over D# 17 primitive 
+create _>    D# 22 primitive 
+create _=    D# 23 primitive 
+create _<    D# 24 primitive 
 create jz   D# 20 primitive
 create jmp  D# 21 primitive 
 create >r   D# 18 primitive
 create r>   D# 19 primitive 
-create <<   D# 33 primitive 
-create >>   D# 34 primitive 
+create _<<   D# 33 primitive 
+create _>>   D# 34 primitive 
 create return        D#  3 primitive 
 create lit           D#  1 primitive
 create put_pixel     D# 26 primitive
@@ -30,20 +30,44 @@ create draw_count    D# 29 primitive
 create set_waveform  D# 31 primitive 
 create start_sound   D# 32 primitive
 
-: cp D# 2 ; 
-: here cp @ ;
-: allot cp @ + cp ! ; 
-: , here D# 1 allot ! ; 
-: compile r> D# 1 + dup @ , >r ; 
+: state D# 2 ; 
+: [ D# 0 state _! ; immediate 
+: ] D# -1 state _! ; 
+: cp D# 3 ; 
+: here cp _@ ;
+: allot cp _@ _+ cp _! ; 
+: , here D# 1 allot _! ; 
+: compile r> D# 1 _+ _dup _@ , >r ; 
 : if compile jz here D# 0 , ; immediate
-: else compile jmp here D# 0 , swap here swap ! ; immediate
-: then here swap ! ; immediate 
+: else compile jmp here D# 0 , _swap here _swap _! ; immediate
+: then here _swap _! ; immediate 
+
+: @ state _@ if compile _@ else _@ then ; immediate 
+: ! state @ if compile _! else _! then ; immediate 
+: + state @ if compile _+ else _+ then ; immediate 
+: - state @ if compile _- else _- then ; immediate 
+: * state @ if compile _* else _* then ; immediate 
+: / state @ if compile _/ else _/ then ; immediate 
+: % state @ if compile _% else _% then ; immediate 
+: & state @ if compile _& else _& then ; immediate 
+: | state @ if compile _| else _| then ; immediate 
+: ~ state @ if compile _~ else _~ then ; immediate 
+: dup state @ if compile _dup else _dup then ; immediate 
+: drop state @ if compile _drop else _drop then ; immediate 
+: swap state @ if compile _swap else _swap then ;  immediate 
+: over state @ if compile _over else _over then ; immediate 
+: > state @ if compile _> else _> then ; immediate 
+: = state @ if compile _= else _= then ; immediate 
+: < state @ if compile _< else _< then ; immediate 
+: << state @ if compile _<< else _<< then ; immediate 
+: >> state @ if compile _>> else _>> then ; immediate 
+
 : begin here ; immediate 
 : again compile jmp , ; immediate 
 : until compile jz , ; immediate
 : while compile jz here D# 0 , swap ; immediate
 : repeat compile jmp , here swap ! ; immediate
-: literal compile lit , ; immediate
+: literal compile lit , ; immediate 
 : abs dup D# 0 < if ~ D# 1 + then ; 
 : 2dup over over ; 
 : rot swap >r swap r> ;
@@ -92,11 +116,11 @@ create seed here ,
 // Plot pixel ( location | ) 
 : plot_pixel color @ swap put_pixel ; 
 
-: total_pixels screen_x screen_y * ; 
+// : total_pixels screen_x screen_y * ; 
 : CLEAR 
     D# 0 begin 
         background @ over put_pixel D# 1 + dup 
-        [ total_pixels ] literal = 
+        [ screen_x screen_y * ] literal = 
     until drop draw_screen ; 
 CLEAR
 
@@ -312,14 +336,14 @@ create font8x8_basic
 : ASCII  + @ ; 
 create CURSOR D# 0 , 
 : CURSOR_AT COLUMNS * + CURSOR ! ; 
-: console_size ROWS COLUMNS * ; 
-: cursor_xy CURSOR @ [ console_size ] literal % dup COLUMNS % swap COLUMNS / ; 
+: cursor_xy CURSOR @ [ ROWS COLUMNS * ] literal % dup COLUMNS % swap COLUMNS / ; 
 : _EMIT D# 1 << cursor_xy COLUMN swap ROW swap screen_location bottom_row 
     over D# 1 + font8x8_basic ASCII draw_rows 
     over font8x8_basic ASCII draw_rows 2drop ; 
-: EMIT _EMIT CURSOR D# 1 +! ;
+: EMIT _EMIT CURSOR D# 1 +! ; 
+: COUNT dup @ swap D# 1 + swap ; 
 : TYPE begin swap dup @ EMIT D# 1 + swap D# 1 - dup while repeat 2drop ; 
-: STRING dup , begin swap dup @ , D# 1 + swap D# 1 - dup while repeat 2drop ; 
+: SCONSTANT dup , begin swap dup @ , D# 1 + swap D# 1 - dup while repeat 2drop ; 
 : CR cursor_xy D# 1 + swap drop D# 0 swap CURSOR_AT ; 
 : SPACE D# 32 EMIT ; 
 : INVERT color @ background @ color ! background ! ; 
@@ -327,6 +351,10 @@ create CURSOR D# 0 ,
 : test random D# 15 % colors + @ FG random D# 15 % colors + @ BG all ; 
 S" Hello World 
 TYPE DRAW SPACE CR 
+S" Hello constant 
+create hello SCONSTANT 
+: test_constant D# 0 begin hello COUNT TYPE DRAW CR D# 1 + dup D# 5 = until drop ; 
+
 : PAUSE draw_count + begin draw_count over < draw_screen while repeat drop ; 
 : 1/10ths D# 6 * ; 
 : 1/20ths D# 3 * ; 
@@ -360,3 +388,6 @@ create SCALE
 create marker D# 0 , 
 : MARK here marker ! ; 
 : FORGET marker @ cp ! ; 
+
+S" A 
+drop @ CR EMIT DRAW  
