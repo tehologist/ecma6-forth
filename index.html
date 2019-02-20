@@ -33,10 +33,11 @@ class VirtualMachine {
     constructor() {
         this.data_stack      = new Int32Array(16);
         this.ds_ndx          = -1;
-        this.return_stack    = [];
+        this.return_stack    = new Int32Array(16);
+        this.rs_ndx          = -1;
         this.buffer          = new ArrayBuffer(1024 * 64 * 4);
         this.code            = new Int32Array(this.buffer);
-        this.program_counter = -1;
+        this.program_counter = -1|0;
 		this.code[2]         =  0; // compiler state
         this.code[3]         =  4; // code pointer 
         this.canvas          = document.getElementById('screen');
@@ -57,6 +58,8 @@ class VirtualMachine {
     CONTINUE(t_frame) { this.draw_count++; if(!this.running){this.Run(this.program_counter);} }
     PUSH (value) { this.data_stack[++this.ds_ndx] = value; }
     POP () { return this.data_stack[this.ds_ndx--]; }
+    RPUSH (v) { this.return_stack[++this.rs_ndx] = v|0; }
+    RPOP () { return this.rs_ndx === -1 ? -1 : this.return_stack[this.rs_ndx--]|0; }
     Run (location) {
         this.program_counter = location;
         this.running = true;
@@ -70,12 +73,11 @@ class VirtualMachine {
                     this.program_counter+=2;
                     break;
                 case 2: // CALL 
-                    this.program_counter++;
-                    this.return_stack.push(this.program_counter);
+                    this.RPUSH(++this.program_counter);
                     this.program_counter = this.code[this.program_counter];
                     break;
                 case 3: // RETURN 
-                    this.program_counter = this.return_stack.pop();
+                    this.program_counter = this.RPOP();
                     this.program_counter++;
                     break;
                 case 4: // LOAD
@@ -147,11 +149,11 @@ class VirtualMachine {
                     this.program_counter++;
                     break;
                 case 18: // TOR 
-                    this.return_stack.push(this.POP());
+                    this.RPUSH(this.POP());
                     this.program_counter++;
                     break;
                 case 19: // FROMR 
-                    this.PUSH(this.return_stack.pop());
+                    this.PUSH(this.RPOP());
                     this.program_counter++;
                     break;
                 case 20: // JZ 

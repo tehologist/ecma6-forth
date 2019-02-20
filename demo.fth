@@ -353,7 +353,6 @@ S" Hello World
 TYPE DRAW SPACE CR 
 S" Hello constant 
 create hello SCONSTANT 
-: test_constant D# 0 begin hello COUNT TYPE DRAW CR D# 1 + dup D# 5 = until drop ; 
 
 : PAUSE draw_count + begin draw_count over < draw_screen while repeat drop ; 
 : 1/10ths D# 6 * ; 
@@ -366,9 +365,9 @@ create SCALE
     D# 369994 , D# 391995 , D# 415305 , D# 440000 , D# 466164 , D# 493883 ,   
     D# 523251 , D# 554365 , D# 587330 , D# 622254 , D# 659255 , D# 698456 , 
     D# 739989 , D# 783991 , D# 830609 , D# 880000 , D# 932328 , D# 987767 ,   
-: scale_start SCALE D# 12 + ;     // C4 
+: C4 SCALE D# 12 + ; 
 
-: BEEP [ scale_start ] literal + @ D# 2 set_waveform D# 80 swap dup >r D# 50 * start_sound r> 1/20ths PAUSE ; 
+: BEEP [ C4 ] literal + @ D# 2 set_waveform D# 80 swap dup >r D# 50 * start_sound r> 1/20ths PAUSE ; 
 : gustav 
     D# 20 D# 0 BEEP D# 20 D# 2 BEEP D# 10 D# 3 BEEP D# 10 D# 2 BEEP D# 20 D# 0 BEEP 
     D# 20 D# 0 BEEP D# 20 D# 2 BEEP D# 10 D# 3 BEEP D# 10 D# 2 BEEP D# 20 D# 0 BEEP 
@@ -383,11 +382,16 @@ create SCALE
   
 : { here D# 4 + compile lit , compile jmp here D# 0 , ; immediate 
 : } compile return here swap ! ; immediate 
-: do r> drop D# 1 - >r ; 
+: {{ here ] ; 
+: }} compile return D# 0 state ! ; immediate 
+: do D# 1 - >r ; 
 : testdo { D# 65 EMIT draw_screen } do ; 
+: times begin dup >r swap >r do r> D# 1 - r> over D# 0 = until 2drop ; 
+S" A 
+drop @ CR EMIT DRAW   
+CR D# 25 {{ hello COUNT TYPE DRAW CR }} times  
 create marker D# 0 , 
 : MARK here marker ! ; 
 : FORGET marker @ cp ! ; 
 
-S" A 
-drop @ CR EMIT DRAW  
+
