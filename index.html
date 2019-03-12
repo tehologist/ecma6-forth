@@ -38,7 +38,7 @@ class VirtualMachine {
         this.buffer          = new ArrayBuffer(1024 * 64 * 4);
         this.code            = new Int32Array(this.buffer);
         this.program_counter = -1|0;
-		this.code[2]         =  0; // compiler state
+        this.code[2]         =  0; // compiler state
         this.code[3]         =  4; // code pointer 
         this.canvas          = document.getElementById('screen');
         this.ctx             = this.canvas.getContext('2d');
@@ -56,165 +56,125 @@ class VirtualMachine {
     compile_off() {this.code[2] = 0;}
     compile() {return this.code[2];}	
     CONTINUE(t_frame) { this.draw_count++; if(!this.running){this.Run(this.program_counter);} }
-    PUSH (value) { this.data_stack[++this.ds_ndx] = value; }
-    POP () { return this.data_stack[this.ds_ndx--]; }
-    RPUSH (v) { this.return_stack[++this.rs_ndx] = v|0; }
-    RPOP () { return this.rs_ndx === -1 ? -1 : this.return_stack[this.rs_ndx--]|0; }
     Run (location) {
         this.program_counter = location;
         this.running = true;
         while (this.program_counter != -1) { // ABORT 
             switch(this.code[this.program_counter]) {
                 case 0: // NOP
-                    this.program_counter++;
                     break;
                 case 1: // LIT
-                    this.PUSH(this.code[this.program_counter+1]);
-                    this.program_counter+=2;
+                    this.data_stack[++this.ds_ndx] = this.code[++this.program_counter];
                     break;
                 case 2: // CALL 
-                    this.RPUSH(++this.program_counter);
+                    this.return_stack[++this.rs_ndx] = ++this.program_counter;
                     this.program_counter = this.code[this.program_counter];
-                    break;
-                case 3: // RETURN 
-                    this.program_counter = this.RPOP();
-                    this.program_counter++;
+                    continue;
+                case 3: // RETURN
+                    this.program_counter = this.rs_ndx === -1 ? -1 : this.return_stack[this.rs_ndx--]; 
                     break;
                 case 4: // LOAD
-                    this.PUSH(this.code[this.POP()]);
-                    this.program_counter++;
+                    this.data_stack[this.ds_ndx] = this.code[this.data_stack[this.ds_ndx]];
                     break;
                 case 5: // STORE 
-                    this.code[this.POP()] = this.POP();
-                    this.program_counter++;
+                    this.code[this.data_stack[this.ds_ndx--]] = this.data_stack[this.ds_ndx--];
                     break;
                 case 6: // ADD 
-                    this.PUSH((this.POP() + this.POP())|0);
-                    this.program_counter++;
+                    this.data_stack[--this.ds_ndx] = (this.data_stack[this.ds_ndx+1] + this.data_stack[this.ds_ndx]);
                     break;
                 case 7: // SUB 
-                {   let tos = this.POP();
-                    this.PUSH(this.POP() - tos); }
-                    this.program_counter++;
+                    this.data_stack[--this.ds_ndx] = this.data_stack[this.ds_ndx] - this.data_stack[this.ds_ndx+1];
                     break;
                 case 8: // MUL 
-                    this.PUSH((this.POP() * this.POP())|0);
-                    this.program_counter++;
+                    this.data_stack[--this.ds_ndx] = this.data_stack[this.ds_ndx+1] * this.data_stack[this.ds_ndx];
                     break;
                 case 9: // DIV 
-                {   let tos = this.POP();
-                    this.PUSH((this.POP() / tos)|0); }
-                    this.program_counter++;
+                    this.data_stack[--this.ds_ndx] = this.data_stack[this.ds_ndx] / this.data_stack[this.ds_ndx+1];
                     break;
                 case 10: // MOD 
-                {   let tos = this.POP();
-                    this.PUSH((this.POP() % tos)|0); }
-                    this.program_counter++;
+                    this.data_stack[--this.ds_ndx] = this.data_stack[this.ds_ndx] % this.data_stack[this.ds_ndx+1];
                     break;
                 case 11: // AND
-                    this.PUSH(this.POP() & this.POP());
-                    this.program_counter++;
+                    this.data_stack[--this.ds_ndx] = this.data_stack[this.ds_ndx+1] & this.data_stack[this.ds_ndx];
                     break;
                 case 12: // OR 
-                    this.PUSH(this.POP() | this.POP());
-                    this.program_counter++;
+                    this.data_stack[--this.ds_ndx] = this.data_stack[this.ds_ndx+1] | this.data_stack[this.ds_ndx];
                     break;
                 case 13: // NOT 
-                    this.PUSH(~this.POP());
-                    this.program_counter++;
+                    this.data_stack[this.ds_ndx] = ~this.data_stack[this.ds_ndx];
                     break;
                 case 14: // DUP 
-                {   let tos = this.POP();
-                    this.PUSH(tos);
-                    this.PUSH(tos); }
-                     this.program_counter++;
-                     break;
+                    this.data_stack[++this.ds_ndx] = this.data_stack[this.ds_ndx-1];
+                    break;
                 case 15: // DROP 
-                    this.POP();
-                    this.program_counter++;
+                    this.ds_ndx--;
                     break;
                 case 16: // SWAP 
-                {   let tos = this.POP();
-                    let sos = this.POP();
-                    this.PUSH(tos);
-                    this.PUSH(sos); }
-                    this.program_counter++;
+                {   let tos = this.data_stack[this.ds_ndx];
+                    this.data_stack[this.ds_ndx] = this.data_stack[this.ds_ndx - 1];
+                    this.data_stack[this.ds_ndx - 1] = tos; }
                     break;
-                case 17: // OVER 
-                {   let tos = this.POP();
-                    let sos = this.POP();
-                    this.PUSH(sos);
-                    this.PUSH(tos);
-                    this.PUSH(sos); }
-                    this.program_counter++;
+                case 17: // OVER
+                    this.data_stack[++this.ds_ndx] = this.data_stack[this.ds_ndx - 2]; 
                     break;
-                case 18: // TOR 
-                    this.RPUSH(this.POP());
-                    this.program_counter++;
+                case 18: // TOR
+                    this.return_stack[++this.rs_ndx] = this.data_stack[this.ds_ndx--]; 
                     break;
                 case 19: // FROMR 
-                    this.PUSH(this.RPOP());
-                    this.program_counter++;
+                    this.data_stack[++this.ds_ndx] = this.return_stack[this.rs_ndx--];
                     break;
                 case 20: // JZ 
-                    if(this.POP() == 0) { this.program_counter = this.code[this.program_counter+1]; }
+                    if(this.data_stack[this.ds_ndx--] == 0) { this.program_counter = this.code[this.program_counter+1]; }
                     else { this.program_counter+=2; }
-                    break;
+                    continue;
                 case 21: // JMP 
                     this.program_counter = this.code[this.program_counter+1];
-                    break;
+                    continue;
                 case 22: // GT 
-                    if (this.POP() < this.POP()) this.PUSH(-1);
-                    else this.PUSH(0);
-                    this.program_counter++;
+                    if(this.data_stack[this.ds_ndx--] < this.data_stack[this.ds_ndx]) this.data_stack[this.ds_ndx] = -1; 
+                    else this.data_stack[this.ds_ndx] = 0;
                     break;
                 case 23: // EQ 
-                    if (this.POP() == this.POP()) this.PUSH(-1);
-                    else this.PUSH(0);
-                    this.program_counter++;
+                    if(this.data_stack[this.ds_ndx--] == this.data_stack[this.ds_ndx]) this.data_stack[this.ds_ndx] = -1; 
+                    else this.data_stack[this.ds_ndx] = 0;
                     break;
                 case 24: // LT 
-                    if (this.POP() > this.POP()) this.PUSH(-1);
-                    else this.PUSH(0);
-                    this.program_counter++;
+                    if(this.data_stack[this.ds_ndx--] > this.data_stack[this.ds_ndx]) this.data_stack[this.ds_ndx] = -1; 
+                    else this.data_stack[this.ds_ndx] = 0;
                     break;
                 case 26: // PUT_PIXEL
-                {   let position = this.POP() * 4;
-                    let value = this.POP();
+                {   let position = this.data_stack[this.ds_ndx--] * 4;
+                    let value = this.data_stack[this.ds_ndx--];
                     this.imagedata.data[position++] = ((value >>> 16) & 0xFF); // red
                     this.imagedata.data[position++] = ((value >>> 8) & 0xFF);  // green
                     this.imagedata.data[position++] = (value & 0xFF);          // blue
                     this.imagedata.data[position]   = 0xFF;				
                     this.need_refresh = true; }
-                    this.program_counter++;
                     break;
                 case 27: //DRAW_SCREEN 
                     if (this.need_refresh) {
                          this.ctx.putImageData(this.imagedata, 0, 0);
                          this.need_refresh = false; }
                     this.running = false;
-					this.program_counter++;
+		    this.program_counter++;
                     return;				
                 case 29: // REFRESH_COUNT 
-                    this.PUSH(this.draw_count);
-                    this.program_counter++;
+                    this.data_stack[++this.ds_ndx] = this.draw_count;
                     break;
                 case 30: // READ_KEY
-                    if(this.key == -1) { this.PUSH(0); }
+                    if(this.key == -1) { this.data_stack[++this.ds_ndx] = 0; }
                     else {
-                        this.PUSH(this.key);
-                        this.PUSH(1);
+                        this.data_stack[++this.ds_ndx] = this.key;
+                        this.data_stack[++this.ds_ndx] = 1;
                         this.key = -1; }
-                    this.program_counter++;
                     break;
                 case 31: // SET_WAVEFORM
-                    this.waveform = ["sine","square","sawtooth","triangle"][this.POP()];
-                    this.freq = this.POP();
-                    this.program_counter++;
+                    this.waveform = ["sine","square","sawtooth","triangle"][this.data_stack[this.ds_ndx--]];
+                    this.freq = this.data_stack[this.ds_ndx--];
                     break;
                 case 32: // START_SOUND
-                {   let duration = (this.POP() / 1000.0);
-                    let volume = (this.POP() / 100.0);
+                {   let duration = (this.data_stack[this.ds_ndx--] / 1000.0);
+                    let volume = (this.data_stack[this.ds_ndx--] / 100.0);
                     let osc = this.audioCtx.createOscillator();
                     osc.type = this.waveform;
                     osc.frequency.setValueAtTime((this.freq / 1000.0), this.audioCtx.currentTime);
@@ -224,22 +184,18 @@ class VirtualMachine {
                     gainNode.connect(this.audioCtx.destination);
                     osc.start();
                     osc.stop(this.audioCtx.currentTime + duration); }
-                    this.program_counter++;
                     break;
                 case 33: // LSHIFT 
-                {   let shift_num = this.POP();
-                    this.PUSH(this.POP() << shift_num); }					
-                    this.program_counter++;
+                    this.data_stack[--this.ds_ndx] = this.data_stack[this.ds_ndx] << this.data_stack[this.ds_ndx+1];					
                     break;
                 case 34: // RSHIFT 
-                {   let shift_num = this.POP();
-                    this.PUSH(this.POP() >>> shift_num); }	
-                    this.program_counter++;
+                    this.data_stack[--this.ds_ndx] = this.data_stack[this.ds_ndx] >> this.data_stack[this.ds_ndx+1];	
                     break;
                 default:
                     this.program_counter = -1; // ABORT 
-                    break;
+                    continue;
             }
+            this.program_counter++;
         }
         this.running = false;
         return this.program_counter;
@@ -285,8 +241,8 @@ class Interpreter {
                 let tmp_s = input.join(' ');
                 let pad = this.vm.code[3] + 80; // scratch pad
                 for(let x = 0; x < tmp_s.length; x++) { this.vm.code[pad++] = tmp_s.charCodeAt(x)|0; }
-                this.vm.PUSH(this.vm.code[3] + 80);
-                this.vm.PUSH(tmp_s.length);
+                this.vm.data_stack[++this.vm.ds_ndx] = this.vm.code[3] + 80;
+                this.vm.data_stack[++this.vm.ds_ndx] = tmp_s.length;
                 break;
             }
             if (word.length === 0) { continue; }
@@ -306,7 +262,7 @@ class Interpreter {
         if(this.vm.compile() === -1 ) {
             this.vm.push_code(1); // LIT 
             this.vm.push_code(element.code); }
-        else { this.vm.PUSH(element.code); }
+        else { this.vm.data_stack[++this.vm.ds_ndx] = element.code; }
     }
     op_code(element, input) {
         if(this.vm.compile() === -1) {
@@ -321,7 +277,7 @@ class Interpreter {
         if (this.vm.compile() === -1) {
             this.vm.push_code(1); // LIT 
             this.vm.push_code(number); }
-        else { this.vm.PUSH(number); }
+        else { this.vm.data_stack[++this.vm.ds_ndx] = number; }
     }
     op_interpret(element, input) {
         switch(element.code) {
@@ -341,7 +297,7 @@ class Interpreter {
                 break;
             case 5: // primitive 
                 this.dict[0].type = OPCODE_TYPE.PRIMITIVE;
-				this.dict[0].code = this.vm.POP();
+		this.dict[0].code = this.vm.data_stack[this.vm.ds_ndx--];
                 break;
             case 6: // .S 
             {   let ds = this.vm.ds_ndx > -1 ? this.vm.data_stack.slice(0, this.vm.ds_ndx+1) : []; 
@@ -356,15 +312,15 @@ class Interpreter {
             case 9: // B# 
                 this.op_number(2, input);
                 break;
-			case 10: // '
-			{   let element = this.find(this.word(input));
+	    case 10: // '
+	    {   let element = this.find(this.word(input));
                 if (element) { 
-			        this.vm.PUSH(element.code);
-				    this.vm.PUSH(-1); }
-			    else { this.vm.PUSH(0); } }
+	            this.vm.data_stack[++this.vm.ds_ndx] = element.code;
+		    this.vm.data_stack[++this.vm.ds_ndx] = -1; }
+	        else { this.vm.data_stack[++this.vm.ds_ndx] = 0; } }
                 break;
             default:
-			    break;
+	        break;
         }
     }
 }
