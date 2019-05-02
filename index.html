@@ -191,6 +191,9 @@ class VirtualMachine {
                 case 34: // RSHIFT 
                     this.data_stack[--this.ds_ndx] = this.data_stack[this.ds_ndx] >> this.data_stack[this.ds_ndx+1];	
                     break;
+                case 35: // XOR 
+                    this.data_stack[--this.ds_ndx] = this.data_stack[this.ds_ndx+1] ^ this.data_stack[this.ds_ndx];
+                    break;
                 default:
                     this.program_counter = -1; // ABORT 
                     continue;
