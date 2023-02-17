@@ -1,0 +1,17 @@
+#console { 
+    background-color : black; 
+    border : 4px solid green;
+    color : white;
+    font-family : consolas, monospace;
+    font-size : 14pt;
+    overflow-y : scroll;
+    max-height : 50em;
+    min-height : 25em;
+    min-width : 50em;
+    max-width : 50em;
+    float : left;
+}
+#screen {
+    background-color : black;
+    border : 4px solid white;
+}
